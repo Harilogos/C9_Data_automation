@@ -31,6 +31,8 @@ def process_hrbr_consumption(input_file):
     validate_file_exists(input_file)
     df = pd.read_excel(input_file)
     validate_columns(df, ['DateTime', 'Consumption'], context="HRBR input")
+    # Clean up: treat empty strings/whitespace as NaN in 'Consumption'
+    df['Consumption'] = df['Consumption'].replace(r'^\s*$', np.nan, regex=True)
     validate_no_nans(df, ['DateTime', 'Consumption'], context="HRBR input")
     validate_positive_values(df, ['Consumption'], context="HRBR input")
     df['DateTime'] = pd.to_datetime(df['DateTime'])
@@ -241,6 +243,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
