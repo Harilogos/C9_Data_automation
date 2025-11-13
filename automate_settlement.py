@@ -10,6 +10,9 @@ def calculate_matched_settlement(input_file: str, input_sheet: str, output_sheet
     with pd.ExcelWriter(input_file, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
         df.to_excel(writer, sheet_name=output_sheet, index=False)
     print(f"✅ Matched settlement column added and saved to sheet '{output_sheet}'.")
+    import gc, time
+    gc.collect()
+    time.sleep(0.1)
 
 def add_unit_id(input_file: str, input_sheet: str, output_sheet: str) -> None:
     # Create mapping dict
@@ -44,6 +47,9 @@ def add_unit_id(input_file: str, input_sheet: str, output_sheet: str) -> None:
     with pd.ExcelWriter(input_file, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
         df.to_excel(writer, sheet_name=output_sheet, index=False)
     print(f"✅ Unit IDs added and saved to sheet '{output_sheet}'")
+    import gc, time
+    gc.collect()
+    time.sleep(0.1)
 
 def monthly_aggregation(input_file: str, input_sheet: str, output_sheet: str) -> None:
     df = pd.read_excel(input_file, sheet_name=input_sheet)
@@ -61,6 +67,9 @@ def monthly_aggregation(input_file: str, input_sheet: str, output_sheet: str) ->
     with pd.ExcelWriter(input_file, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
         monthly_df.to_excel(writer, sheet_name=output_sheet, index=False)
     print(f"✅ Monthly aggregated data saved to sheet '{output_sheet}'")
+    import gc, time
+    gc.collect()
+    time.sleep(0.1)
 
 def apply_monthly_banking_settlement(input_file: str, input_sheet: str = "monthly", output_sheet: str = "banking_settlement") -> None:
     df = pd.read_excel(input_file, sheet_name=input_sheet)
@@ -100,6 +109,9 @@ def apply_monthly_banking_settlement(input_file: str, input_sheet: str = "monthl
     with pd.ExcelWriter(input_file, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
         final_df.to_excel(writer, sheet_name=output_sheet, index=False)
     print(f"✅ Banking settlement applied and saved to sheet '{output_sheet}'.")
+    import gc, time
+    gc.collect()
+    time.sleep(0.1)
 
 def calculate_savings_comparison(input_file: str, sheet_name: str, high_grid_rate_per_kwh: float, low_grid_rate_per_kwh: float, renewable_rate_per_kwh: float, output_sheet: str = "monthly_saving") -> None:
     df = pd.read_excel(input_file, sheet_name=sheet_name).copy()
@@ -147,6 +159,9 @@ def calculate_savings_comparison(input_file: str, sheet_name: str, high_grid_rat
     with pd.ExcelWriter(input_file, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
         df.to_excel(writer, sheet_name=output_sheet, index=False)
         print("Monthly saving data saved")
+    import gc, time
+    gc.collect()
+    time.sleep(0.1)
 
 def main():
     input_file = "Consumption_Generation_Aug25.xlsx"

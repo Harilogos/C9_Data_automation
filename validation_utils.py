@@ -5,7 +5,7 @@ def validate_columns(df, required_columns, context=""):
     missing = [col for col in required_columns if col not in df.columns]
     if missing:
         raise ValueError(
-            f"[validation_utils.py] Line 5: Missing required columns {missing} in {context}. "
+            f"Missing required columns {missing} in {context}. "
             f"Columns present: {list(df.columns)}. Please ensure your file includes all required columns."
         )
 
