@@ -43,12 +43,30 @@ from automate_settlement import (
 
 import validation_utils
 
+# --- DB insertion modules ---
+from DB.insert_15min_data import insert_15min_data
+from DB.insert_hourly_data import insert_hourly_data
+from DB.insert_monthly_banking_settlement import insert_monthly_banking_settlement
+from DB.insert_monthly_savings import insert_monthly_savings
+
 # --- App config ---
 st.set_page_config(page_title="Data Upload & Automation", layout="wide")
 st.title("Data Upload & Automation")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("c9_app")
+
+
+
+
+os.makedirs(".streamlit", exist_ok=True)
+with open(".streamlit/config.toml", "w") as f:
+    f.write("""
+[server]
+port = 9050
+address = "10.20.0.240"
+""")
+
 
 # --- Utilities ---
 DEFAULT_UNIT_VALUES: Dict[str, float] = {
@@ -507,6 +525,11 @@ elif st.session_state["flow_step"] == 4 and st.session_state.get("validation_pas
                                 with open(hourly_output_file, "rb") as f:
                                     st.download_button("Download Hourly Aggregated Excel", f, file_name=hourly_output_file.name)
 
+                            # Download Consumption_Generation_Aug25_hourly.xlsx
+                            if hourly_merged_file.exists():
+                                with open(hourly_merged_file, "rb") as f:
+                                    st.download_button("Download Consumption-Generation Hourly Excel", f, file_name=hourly_merged_file.name)
+
                             # Settlement output downloads
                             if merged_consumption_generation_file.exists():
                                 with open(merged_consumption_generation_file, "rb") as f:
@@ -549,10 +572,20 @@ elif st.session_state["flow_step"] == 4 and st.session_state.get("validation_pas
                                 gen_dest = project_folder / "Generation_Uploaded.xlsx"
                                 save_uploaded_file(gen_excel, gen_dest)
 
+                            # DEBUG: List all files in tmpdir_path before copying
+                            st.write("Files in tmpdir_path before copy:")
+                            for file_path in tmpdir_path.glob("*"):
+                                st.write(file_path.name)
+
                             # Copy all files created in tmpdir_path to project_folder
                             for file_path in tmpdir_path.glob("*"):
                                 if file_path.is_file():
                                     shutil.copy(file_path, project_folder / file_path.name)
+
+                            # DEBUG: List all files in project_folder after copying
+                            st.write("Files in project_folder after copy:")
+                            for file_path in project_folder.glob("*"):
+                                st.write(file_path.name)
 
                             # Optionally, zip the project folder and provide a download link
                             zip_path = project_folder.with_suffix(".zip")
@@ -562,7 +595,57 @@ elif st.session_state["flow_step"] == 4 and st.session_state.get("validation_pas
                             with open(zip_path, "rb") as f:
                                 st.download_button("Download All Project Files (ZIP)", f, file_name=zip_path.name)
 
-                            st.success("✅ All steps completed. Download your results above.")
+                            # --- DB Insertion Section ---
+                            st.markdown("### Database Insertion")
+                            db_status = st.empty()
+                            db_results = []
+                            try:
+                                db_status.info("Inserting 15-min data into database...")
+                                insert_15min_data(
+                                    excel_path=str(project_folder / "Consumption_Generation_Aug25.xlsx"),
+                                    sheet_name="15 mins",
+                                    location_units_path="location_units.json"
+                                )
+                                db_results.append("✅ 15-min data inserted successfully.")
+                            except Exception as e:
+                                db_results.append(f"❌ 15-min data insertion failed: {e}")
+
+                            try:
+                                db_status.info("Inserting hourly data into database...")
+                                insert_hourly_data(
+                                    excel_path=str(project_folder / "Consumption_Generation_Aug25_hourly.xlsx")
+                                )
+                                db_results.append("✅ Hourly data inserted successfully.")
+                            except Exception as e:
+                                db_results.append(f"❌ Hourly data insertion failed: {e}")
+
+                            try:
+                                db_status.info("Inserting monthly banking settlement data into database...")
+                                insert_monthly_banking_settlement(
+                                    excel_path=str(project_folder / "Consumption_Generation_Aug25.xlsx"),
+                                    sheet_name="banking_settlement"
+                                )
+                                db_results.append("✅ Monthly banking settlement data inserted successfully.")
+                            except Exception as e:
+                                db_results.append(f"❌ Monthly banking settlement data insertion failed: {e}")
+
+                            try:
+                                db_status.info("Inserting monthly savings data into database...")
+                                insert_monthly_savings(
+                                    excel_path=str(project_folder / "monthly_saving.xlsx")
+                                )
+                                db_results.append("✅ Monthly savings data inserted successfully.")
+                            except Exception as e:
+                                db_results.append(f"❌ Monthly savings data insertion failed: {e}")
+
+                            db_status.empty()
+                            for msg in db_results:
+                                if msg.startswith("✅"):
+                                    st.success(msg)
+                                else:
+                                    st.error(msg)
+
+                            st.success("✅ All steps completed. Download your results above and check database insertion status below.")
 
             except Exception as e:
                 logger.exception("Processing failed")
